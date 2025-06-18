@@ -1,3 +1,5 @@
+pub type Token = String;
+
 pub struct Tokenizer<'a> {
     content: &'a [char],
 }
@@ -25,7 +27,7 @@ impl<'a> Tokenizer<'a> {
         self.chop(i)
     }
 
-    fn next_token(&mut self) -> Option<String> {
+    fn next_token(&mut self) -> Option<Token> {
         self.chop_while(char::is_whitespace);
 
         if self.content.is_empty() {
@@ -45,7 +47,7 @@ impl<'a> Tokenizer<'a> {
 }
 
 impl Iterator for Tokenizer<'_> {
-    type Item = String;
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()
