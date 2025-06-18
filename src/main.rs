@@ -22,15 +22,15 @@ use crate::tokenizer::{Token, Tokenizer};
 mod tokenizer;
 
 type TokensFreq = HashMap<Token, usize>;
-type TokensFreqPerDoc = HashMap<PathBuf, TokensFreq>;
+type TokensFreqWithinDocs = HashMap<PathBuf, TokensFreq>;
 
 fn main() -> Result<(), ()> {
-    let mut tokens_freq_per_doc = TokensFreqPerDoc::new();
+    let mut tokens_freq_within_docs = TokensFreqWithinDocs::new();
     let mut tokens_freq_across_docs = TokensFreq::new();
 
     index_dir(
         Path::new("./documents-small"),
-        &mut tokens_freq_per_doc,
+        &mut tokens_freq_within_docs,
         &mut tokens_freq_across_docs,
     )?;
 
@@ -40,7 +40,7 @@ fn main() -> Result<(), ()> {
 // TODO: consider using https://github.com/BurntSushi/walkdir if you wanna handle symbolic links.
 fn index_dir(
     dir_path: &Path,
-    tokens_freq_per_doc: &mut TokensFreqPerDoc,
+    tokens_freq_within_docs: &mut TokensFreqWithinDocs,
     tokens_freq_across_docs: &mut TokensFreq,
 ) -> Result<(), ()> {
     let dir_entries = std::fs::read_dir(dir_path).map_err(|err| {
@@ -75,7 +75,7 @@ fn index_dir(
         if dir_entry_type.is_dir() {
             if index_dir(
                 &dir_entry_path,
-                tokens_freq_per_doc,
+                tokens_freq_within_docs,
                 tokens_freq_across_docs,
             )
             .is_err()
@@ -95,17 +95,12 @@ fn index_dir(
                 .is_some_and(|extension| extension == "xhtml")
         {
             eprintln!("INFO: Parsing {path}", path = dir_entry_path.display());
-            if let Ok(tokens_freq) = get_tokens_freq_of_doc(&dir_entry_path) {
-                for token in tokens_freq.keys() {
-                    // NOTE: the entry API is not used here to avoid unneeded `clone` if the token
-                    // exists in the hashmap
-                    if let Some(count) = tokens_freq_across_docs.get_mut(token) {
-                        *count += 1;
-                    } else {
-                        tokens_freq_across_docs.insert(token.clone(), 1);
-                    }
-                }
-                tokens_freq_per_doc.insert(dir_entry_path, tokens_freq);
+            if let Ok(tokens_freq_within_doc) = get_tokens_freq_within_doc(&dir_entry_path) {
+                update_token_freq_accross_docs(
+                    tokens_freq_across_docs,
+                    tokens_freq_within_doc.keys(),
+                );
+                tokens_freq_within_docs.insert(dir_entry_path, tokens_freq_within_doc);
             } else {
                 eprintln!(
                     "WARN: Skipping file {path} as it couldn't be parsed",
@@ -120,7 +115,25 @@ fn index_dir(
     Ok(())
 }
 
-fn get_tokens_freq_of_doc(path: &Path) -> Result<TokensFreq, ()> {
+fn update_token_freq_accross_docs<'a>(
+    tokens_freq_across_docs: &mut TokensFreq,
+    tokens_to_update: impl Iterator<Item = &'a Token>,
+) {
+    for token in tokens_to_update {
+        // NOTE: the entry API is not used here to avoid unneeded `clone` when the token
+        // already exists in the hashmap. `.entry()` takes ownernship over the token,
+        // which we don't have here since we are given &Token, so we'll need to clone
+        // everytime we call `.entry()`, even if we are not inserting the token. However,
+        // when `.get_mut`, we are cloning only when inserting the token to the hashmap.
+        if let Some(count) = tokens_freq_across_docs.get_mut(token) {
+            *count += 1;
+        } else {
+            tokens_freq_across_docs.insert(token.clone(), 1);
+        }
+    }
+}
+
+fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreq, ()> {
     let file = File::open(path).map_err(|err| {
         eprintln!(
             "ERROR: Couldn't open file {path} to parse it: {err}",
