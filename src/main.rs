@@ -18,7 +18,7 @@
 // 3. use uper case in the lexer and in compute_tf_idf
 // 4. make a simple http server
 // 5. maybe add stemming (later)
-// 6. create a simple cli tool
+// 6. create a simple cli tool but create a lib.rs to do that
 
 use std::path::Path;
 

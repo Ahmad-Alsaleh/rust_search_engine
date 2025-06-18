@@ -8,8 +8,13 @@ use xml::{reader::XmlEvent, EventReader};
 
 use crate::tokenizer::{Token, Tokenizer};
 
-pub type TokensFreq = HashMap<Token, usize>;
-pub type TokensFreqWithinDocs = HashMap<PathBuf, TokensFreq>;
+type TokensFreq = HashMap<Token, usize>;
+type TokensFreqWithinDocs = HashMap<PathBuf, TokensFreqWithinDoc>;
+
+struct TokensFreqWithinDoc {
+    tokens_freq: TokensFreq,
+    num_of_tokens: usize,
+}
 
 #[derive(Default)]
 pub struct SearchEngineIndex {
@@ -33,7 +38,10 @@ impl SearchEngineIndex {
     }
 
     fn compute_tf(&self, token: &Token, document_path: &Path) -> Result<f32, ()> {
-        let tokens_freq = self
+        let TokensFreqWithinDoc {
+            tokens_freq,
+            num_of_tokens,
+        } = self
             .tokens_freq_within_docs
             .get(document_path)
             .ok_or_else(|| {
@@ -44,7 +52,7 @@ impl SearchEngineIndex {
             })?;
 
         let tf = if let Some(&token_freq) = tokens_freq.get(token) {
-            token_freq as f32 / tokens_freq.len() as f32
+            token_freq as f32 / *num_of_tokens as f32
         } else {
             0.
         };
@@ -107,7 +115,7 @@ impl SearchEngineIndex {
             {
                 eprintln!("INFO: Parsing {path}", path = dir_entry_path.display());
                 if let Ok(tokens_freq_within_doc) = get_tokens_freq_within_doc(&dir_entry_path) {
-                    self.update_token_freq_accross_docs(tokens_freq_within_doc.keys());
+                    self.update_token_freq_accross_docs(tokens_freq_within_doc.tokens_freq.keys());
                     self.tokens_freq_within_docs
                         .insert(dir_entry_path, tokens_freq_within_doc);
                 } else {
@@ -143,7 +151,7 @@ impl SearchEngineIndex {
     }
 }
 
-fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreq, ()> {
+fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreqWithinDoc, ()> {
     let file = File::open(path).map_err(|err| {
         eprintln!(
             "ERROR: Couldn't open file {path} to parse it: {err}",
@@ -176,5 +184,10 @@ fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreq, ()> {
         }
     }
 
-    Ok(tokens_freq)
+    let num_of_tokens = tokens_freq.values().sum();
+
+    Ok(TokensFreqWithinDoc {
+        tokens_freq,
+        num_of_tokens,
+    })
 }
