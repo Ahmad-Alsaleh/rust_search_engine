@@ -48,14 +48,22 @@ impl SearchEngineIndex {
 
         Ok(())
     }
-
-    pub fn load(index_path: impl AsRef<Path>) -> Result<Self> {
-        todo!();
-    }
 }
 
 // private methods
 impl SearchEngineIndex {
+    pub(crate) fn load(index_path: &Path) -> Result<Self> {
+        let file = File::open(index_path).map_err(|err| {
+            eprintln!("ERROR: Failed to open the index file: {err}");
+        })?;
+        let file = BufReader::new(file);
+
+        let index = serde_json::from_reader(file)
+            .map_err(|err| eprintln!("ERROR: Failed to deserialize index: {err}"))?;
+
+        Ok(index)
+    }
+
     // TODO: handle symbolic links. consider using https://github.com/BurntSushi/walkdir for that
     fn index_dir(&mut self, dir_path: &Path) -> Result<()> {
         let dir_entries = std::fs::read_dir(dir_path).map_err(|err| {

@@ -21,7 +21,7 @@
 
 use std::env::{self};
 
-use RustSearchEngine::SearchEngineIndex;
+use RustSearchEngine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
 
 fn main() -> Result<()> {
     let mut args = env::args();
@@ -46,16 +46,25 @@ fn main() -> Result<()> {
         let dest_path = args.next().unwrap_or_else(|| String::from("index.json"));
         index.save(dest_path)?;
     } else if command == "search" {
-        todo!();
-        // let index_path = "index path";
-        // let prompt = "search prompt";
-        // let search_engine = SearchEngine::new(index_path);
-        // let docs = search_engine.search(prompt);
-        // print_docs(docs);
+        let query = args.next().ok_or_else(|| {
+            print_usage(&program_name);
+            eprintln!("ERROR: Expected search query");
+        })?;
+        let index_path = args.next().unwrap_or_else(|| String::from("index.json"));
 
-        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
+        let search_engine = SearchEngine::new(index_path)?;
+        let search_results = search_engine.search(&query);
+        for SearchResult {
+            doc_path,
+            importance_score,
+        } in search_results.into_iter()
+        {
+            println!("{path}: {importance_score}", path = doc_path.display());
+        }
     } else if command == "serve" {
         todo!();
+        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
+
         // let index_path = args.next()
         // let index_path = "index path";
         // let search_engine = SearchEngine::new(index_path);
@@ -78,12 +87,15 @@ fn main() -> Result<()> {
 }
 
 fn print_usage(program_name: &str) {
-    eprintln!("USAGE:   {program_name} <COMMAND>");
+    eprintln!("Usage:   {program_name} <COMMAND>");
     eprintln!();
     eprintln!("Commands:");
-    eprintln!("help:    Show app usage and exit");
-    eprintln!("index <DOCS-DIR> [<DEST-PATH>]:");
-    eprintln!("     Create an index from a directory of documents and save it.");
-    eprintln!("     Default destination is `index.json`");
+    eprintln!("  help:    Show app usage and exit");
+    eprintln!("  index <DOCS-DIR> [<DEST-PATH>]:");
+    eprintln!("           Create an index from a directory of documents and save it.");
+    eprintln!("           Default destination is `index.json`");
+    eprintln!("  search <QUERY> [<INDEX-PATH>]:");
+    eprintln!("           Search for relevant documents to a search query.");
+    eprintln!("           Default index path is `index.json`");
     eprintln!();
 }
