@@ -7,7 +7,10 @@ use std::{
 };
 use xml::{reader::XmlEvent, EventReader};
 
-use crate::tokenizer::{Token, Tokenizer};
+use crate::{
+    tokenizer::{Token, Tokenizer},
+    Result,
+};
 
 type TokensFreq = HashMap<Token, usize>;
 type TokensFreqWithinDocs = HashMap<PathBuf, TokensFreqWithinDoc>;
@@ -26,17 +29,16 @@ pub struct SearchEngineIndex {
 
 // public methods
 impl SearchEngineIndex {
-    pub fn new(docs_dir: impl AsRef<Path>) -> Result<Self, ()> {
-        let dir_path = docs_dir.as_ref();
+    pub fn new(docs_dir: impl AsRef<Path>) -> Result<Self> {
+        let docs_dir = docs_dir.as_ref();
 
         let mut search_engine_index: Self = Default::default();
-        search_engine_index.index_dir(dir_path)?;
+        search_engine_index.index_dir(docs_dir)?;
 
         Ok(search_engine_index)
     }
 
-    // pub fn save(&self, dest: &Path) -> Result<(), ()> {
-    pub fn save(&self, dest: impl AsRef<Path>) -> Result<(), ()> {
+    pub fn save(&self, dest: impl AsRef<Path>) -> Result<()> {
         let file = File::create(dest)
             .map_err(|err| eprintln!("ERROR: Failed to create file while saving index: {err}"))?;
         let file = BufWriter::new(file);
@@ -47,7 +49,7 @@ impl SearchEngineIndex {
         Ok(())
     }
 
-    pub fn load(src: &Path) -> Result<Self, ()> {
+    pub fn load(index_path: impl AsRef<Path>) -> Result<Self> {
         todo!();
     }
 }
@@ -55,7 +57,7 @@ impl SearchEngineIndex {
 // private methods
 impl SearchEngineIndex {
     // TODO: handle symbolic links. consider using https://github.com/BurntSushi/walkdir for that
-    fn index_dir(&mut self, dir_path: &Path) -> Result<(), ()> {
+    fn index_dir(&mut self, dir_path: &Path) -> Result<()> {
         let dir_entries = std::fs::read_dir(dir_path).map_err(|err| {
             eprintln!(
                 "ERROR: Couldn't open directory {path}: {err}",
@@ -139,7 +141,7 @@ impl SearchEngineIndex {
     }
 }
 
-fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreqWithinDoc, ()> {
+fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreqWithinDoc> {
     let file = File::open(path).map_err(|err| {
         eprintln!(
             "ERROR: Couldn't open file {path} to parse it: {err}",

@@ -1,17 +1,17 @@
 use std::path::Path;
 
-use crate::{index::TokensFreqWithinDoc, tokenizer::Token};
+use crate::{index::TokensFreqWithinDoc, tokenizer::Token, Result};
 
 pub(crate) struct SearchEngine {
     index: crate::SearchEngineIndex,
 }
 
 impl SearchEngine {
-    fn compute_tf_idf(&self, token: &Token, document_path: &Path) -> Result<f32, ()> {
+    fn compute_tf_idf(&self, token: &Token, document_path: &Path) -> Result<f32> {
         Ok(self.compute_tf(token, document_path)? * self.compute_idf(token))
     }
 
-    fn compute_tf(&self, token: &Token, document_path: &Path) -> Result<f32, ()> {
+    fn compute_tf(&self, token: &Token, document_path: &Path) -> Result<f32> {
         let TokensFreqWithinDoc {
             tokens_freq,
             num_of_tokens,
