@@ -42,7 +42,7 @@ impl<'a> Tokenizer<'a> {
             self.chop(1)
         };
 
-        Some(token.iter().collect())
+        Some(token.iter().map(|c| c.to_ascii_uppercase()).collect())
     }
 }
 

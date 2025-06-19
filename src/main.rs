@@ -15,7 +15,6 @@
 // 2. remove compute_tf_idf to a struct called SearchEngine (which contains an index: SearchEngineIndex)
 //      create a method called search that takes a prompt and loops over all docs to rank them. create
 //      a similar func that takes a k to return the top k results (use DSs to optimize the complexity).
-// 3. use upper case in the lexer and in compute_tf_idf
 // 4. make a simple http server
 // 5. maybe add stemming (later)
 // 6. create a simple cli tool but create a lib.rs to do that
@@ -24,7 +23,7 @@ use std::env::{self};
 
 use RustSearchEngine::SearchEngineIndex;
 
-fn main() -> Result<(), ()> {
+fn main() -> Result<()> {
     let mut args = env::args();
     let program_name = args.next().expect("program name is always provided");
 
