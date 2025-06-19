@@ -34,7 +34,9 @@ fn main() -> Result<(), ()> {
         eprintln!("Example: {program_name} <COMMAND>");
     })?;
 
-    if command == "index" {
+    if command == "help" {
+        print_usage(&program_name);
+    } else if command == "index" {
         let docs_dir = args.next().ok_or_else(|| {
             print_usage(&program_name);
             eprintln!("ERROR: Expected path of the directory with documents to index");
@@ -44,6 +46,15 @@ fn main() -> Result<(), ()> {
 
         let dest_path = args.next().unwrap_or_else(|| String::from("index.json"));
         index.save(dest_path)?;
+    } else if command == "search" {
+        todo!();
+        // let index_path = "index path";
+        // let prompt = "search prompt";
+        // let search_engine = SearchEngine::new(index_path);
+        // let docs = search_engine.search(prompt);
+        // print_docs(docs);
+
+        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
     } else if command == "serve" {
         todo!();
         // let index_path = args.next()
@@ -58,15 +69,6 @@ fn main() -> Result<(), ()> {
         // work too)
         // search_engine.search should tokenize the prompt and loop over all docs computing the
         // tfi-df of each.
-    } else if command == "search (or maybe None, idk)" {
-        todo!();
-        // let index_path = "index path";
-        // let prompt = "search prompt";
-        // let search_engine = SearchEngine::new(index_path);
-        // let docs = search_engine.search(prompt);
-        // print_docs(docs);
-
-        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
     } else {
         todo!();
         // print_usage();
@@ -77,10 +79,12 @@ fn main() -> Result<(), ()> {
 }
 
 fn print_usage(program_name: &str) {
-    eprintln!("USAGE:   {program_name} (index <DOCS-DIR> [<DEST-PATH>])");
+    eprintln!("USAGE:   {program_name} <COMMAND>");
     eprintln!();
     eprintln!("Commands:");
-    eprintln!("index:   Create an index from a directory of documents and save it.");
-    eprintln!("         Default destination is `index.json`");
+    eprintln!("help:    Show app usage and exit");
+    eprintln!("index <DOCS-DIR> [<DEST-PATH>]:");
+    eprintln!("     Create an index from a directory of documents and save it.");
+    eprintln!("     Default destination is `index.json`");
     eprintln!();
 }
