@@ -12,10 +12,10 @@
 // TODO (next steps):
 // 1. save the index to a local file (as json, using serde)
 //      add two methods for SearchEngineIndex: save and load
-// 2. remove compute_tf_idf to a strcut called SearchEngine (wich contains an index: SearchEngineIndex)
+// 2. remove compute_tf_idf to a struct called SearchEngine (which contains an index: SearchEngineIndex)
 //      create a method called search that takes a prompt and loops over all docs to rank them. create
 //      a similar func that takes a k to return the top k results (use DSs to optimize the complexity).
-// 3. use uper case in the lexer and in compute_tf_idf
+// 3. use upper case in the lexer and in compute_tf_idf
 // 4. make a simple http server
 // 5. maybe add stemming (later)
 // 6. create a simple cli tool but create a lib.rs to do that
@@ -30,7 +30,7 @@ fn main() -> Result<(), ()> {
 
     let command = args.next().ok_or_else(|| {
         print_usage(&program_name);
-        eprintln!("ERROR: expected a command");
+        eprintln!("ERROR: Expected a command");
         eprintln!("Example: {program_name} <COMMAND>");
     })?;
 

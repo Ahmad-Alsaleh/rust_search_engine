@@ -5,7 +5,7 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
-    /// Contruct a new Tokenizer
+    /// Construct a new Tokenizer
     pub fn new(content: &'a [char]) -> Self {
         Self { content }
     }

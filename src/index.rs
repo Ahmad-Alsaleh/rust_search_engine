@@ -42,7 +42,7 @@ impl SearchEngineIndex {
         let file = BufWriter::new(file);
 
         serde_json::to_writer(file, self)
-            .map_err(|err| eprintln!("ERROR: Faild to serialize index: {err}"))?;
+            .map_err(|err| eprintln!("ERROR: Failed to serialize index: {err}"))?;
 
         Ok(())
     }
@@ -98,12 +98,12 @@ impl SearchEngineIndex {
             if dir_entry_type.is_file()
                 && dir_entry_path
                     .extension()
-                    // NOTE: only files with the extension `xthml` are currently supported
+                    // NOTE: only files with the extension `xhtml` are currently supported
                     .is_some_and(|extension| extension == "xhtml")
             {
                 eprintln!("INFO: Parsing {path}", path = dir_entry_path.display());
                 if let Ok(tokens_freq_within_doc) = get_tokens_freq_within_doc(&dir_entry_path) {
-                    self.update_token_freq_accross_docs(tokens_freq_within_doc.tokens_freq.keys());
+                    self.update_token_freq_across_docs(tokens_freq_within_doc.tokens_freq.keys());
                     self.tokens_freq_within_docs
                         .insert(dir_entry_path, tokens_freq_within_doc);
                 } else {
@@ -120,15 +120,15 @@ impl SearchEngineIndex {
         Ok(())
     }
 
-    fn update_token_freq_accross_docs<'a>(
+    fn update_token_freq_across_docs<'a>(
         &mut self,
         tokens_to_update: impl Iterator<Item = &'a Token>,
     ) {
         for token in tokens_to_update {
             // NOTE: the entry API is not used here to avoid unneeded `clone` when the token
-            // already exists in the hashmap. `.entry()` takes ownernship over the token,
+            // already exists in the hashmap. `.entry()` takes ownership over the token,
             // which we don't have here since we are given &Token, so we'll need to clone
-            // everytime we call `.entry()`, even if we are not inserting the token. However,
+            // every time we call `.entry()`, even if we are not inserting the token. However,
             // when `.get_mut`, we are cloning only when inserting the token to the hashmap.
             if let Some(count) = self.tokens_freq_across_docs.get_mut(token) {
                 *count += 1;
@@ -150,7 +150,7 @@ fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreqWithinDoc, ()> {
 
     let mut tokens_freq = TokensFreq::new();
 
-    // TODO: consider using `xml::ParserConfig` to trim whitespance and disable unneeded events
+    // TODO: consider using `xml::ParserConfig` to trim whitespace and disable unneeded events
     // (such as comments)
     'next_xml_event: for xml_event in EventReader::new(file) {
         let xml_event = match xml_event {
