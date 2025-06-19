@@ -1,12 +1,12 @@
-pub type Token = String;
+pub(crate) type Token = String;
 
-pub struct Tokenizer<'a> {
+pub(crate) struct Tokenizer<'a> {
     content: &'a [char],
 }
 
 impl<'a> Tokenizer<'a> {
     /// Construct a new Tokenizer
-    pub fn new(content: &'a [char]) -> Self {
+    pub(crate) fn new(content: &'a [char]) -> Self {
         Self { content }
     }
 
