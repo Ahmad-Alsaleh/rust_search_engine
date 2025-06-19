@@ -78,9 +78,8 @@ fn main() -> Result<()> {
         // search_engine.search should tokenize the prompt and loop over all docs computing the
         // tfi-df of each.
     } else {
-        todo!();
-        // print_usage();
-        // eprintln!("ERROR: invalid command {command}");
+        print_usage(&program_name);
+        eprintln!("ERROR: invalid command {command}");
     }
 
     Ok(())
