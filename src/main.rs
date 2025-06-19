@@ -20,25 +20,67 @@
 // 5. maybe add stemming (later)
 // 6. create a simple cli tool but create a lib.rs to do that
 
-use std::path::Path;
+use std::env::{self};
 
-use crate::index::SearchEngineIndex;
-
-mod index;
-mod tokenizer;
+use RustSearchEngine::SearchEngineIndex;
 
 fn main() -> Result<(), ()> {
-    let index = SearchEngineIndex::new("documents/")?;
+    let mut args = env::args();
+    let program_name = args.next().expect("program name is always provided");
 
-    // for (path, tokens_freq) in index.tokens_freq_within_docs.iter().take(3) {
-    //     println!("{path}:", path = path.display());
-    //     for (token, freq) in tokens_freq.iter().take(5) {
-    //         println!("    {token}: {freq}")
-    //     }
-    // }
+    let command = args.next().ok_or_else(|| {
+        print_usage(&program_name);
+        eprintln!("ERROR: expected a command");
+        eprintln!("Example: {program_name} <COMMAND>");
+    })?;
 
-    let tf_idf = index.compute_tf_idf(&"FOG".into(), Path::new("documents/es1/glFog.xhtml"))?;
-    println!("{tf_idf}");
+    if command == "index" {
+        let docs_dir = args.next().ok_or_else(|| {
+            print_usage(&program_name);
+            eprintln!("ERROR: Expected path of the directory with documents to index");
+            eprintln!("Example: {program_name} index path/to/dir/");
+        })?;
+        let index = SearchEngineIndex::new(docs_dir)?;
+
+        let dest_path = args.next().unwrap_or_else(|| String::from("index.json"));
+        index.save(dest_path)?;
+    } else if command == "serve" {
+        todo!();
+        // let index_path = args.next()
+        // let index_path = "index path";
+        // let search_engine = SearchEngine::new(index_path);
+        // let server = Server::new(search_engine);
+        // server.handle_requests();
+
+        // create a search_engine { index } object then start an http server which internally
+        // calls search_engine.search(prompt).
+        // the search_engine object will load the index from a provided path (default path should
+        // work too)
+        // search_engine.search should tokenize the prompt and loop over all docs computing the
+        // tfi-df of each.
+    } else if command == "search (or maybe None, idk)" {
+        todo!();
+        // let index_path = "index path";
+        // let prompt = "search prompt";
+        // let search_engine = SearchEngine::new(index_path);
+        // let docs = search_engine.search(prompt);
+        // print_docs(docs);
+
+        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
+    } else {
+        todo!();
+        // print_usage();
+        // eprintln!("ERROR: invalid command {command}");
+    }
 
     Ok(())
+}
+
+fn print_usage(program_name: &str) {
+    eprintln!("USAGE:   {program_name} (index <DOCS-DIR> [<DEST-PATH>])");
+    eprintln!();
+    eprintln!("Commands:");
+    eprintln!("index:   Create an index from a directory of documents and save it.");
+    eprintln!("         Default destination is `index.json`");
+    eprintln!();
 }
