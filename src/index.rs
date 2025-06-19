@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::File,
-    io::BufReader,
+    io::{BufReader, BufWriter},
     path::{Path, PathBuf},
 };
 use xml::{reader::XmlEvent, EventReader};
@@ -11,20 +12,22 @@ use crate::tokenizer::{Token, Tokenizer};
 type TokensFreq = HashMap<Token, usize>;
 type TokensFreqWithinDocs = HashMap<PathBuf, TokensFreqWithinDoc>;
 
-struct TokensFreqWithinDoc {
-    tokens_freq: TokensFreq,
-    num_of_tokens: usize,
+#[derive(Serialize, Deserialize)]
+pub(crate) struct TokensFreqWithinDoc {
+    pub(crate) tokens_freq: TokensFreq,
+    pub(crate) num_of_tokens: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct SearchEngineIndex {
-    tokens_freq_within_docs: TokensFreqWithinDocs,
-    tokens_freq_across_docs: TokensFreq,
+    pub(crate) tokens_freq_within_docs: TokensFreqWithinDocs,
+    pub(crate) tokens_freq_across_docs: TokensFreq,
 }
 
+// public methods
 impl SearchEngineIndex {
-    pub fn new(dir_path: impl AsRef<Path>) -> Result<Self, ()> {
-        let dir_path = dir_path.as_ref();
+    pub fn new(docs_dir: impl AsRef<Path>) -> Result<Self, ()> {
+        let dir_path = docs_dir.as_ref();
 
         let mut search_engine_index: Self = Default::default();
         search_engine_index.index_dir(dir_path)?;
@@ -32,40 +35,25 @@ impl SearchEngineIndex {
         Ok(search_engine_index)
     }
 
-    // TODO: try to change token: &String to token: &str
-    pub fn compute_tf_idf(&self, token: &Token, document_path: &Path) -> Result<f32, ()> {
-        Ok(self.compute_tf(token, document_path)? * self.compute_idf(token))
+    // pub fn save(&self, dest: &Path) -> Result<(), ()> {
+    pub fn save(&self, dest: impl AsRef<Path>) -> Result<(), ()> {
+        let file = File::create(dest)
+            .map_err(|err| eprintln!("ERROR: Failed to create file while saving index: {err}"))?;
+        let file = BufWriter::new(file);
+
+        serde_json::to_writer(file, self)
+            .map_err(|err| eprintln!("ERROR: Faild to serialize index: {err}"))?;
+
+        Ok(())
     }
 
-    fn compute_tf(&self, token: &Token, document_path: &Path) -> Result<f32, ()> {
-        let TokensFreqWithinDoc {
-            tokens_freq,
-            num_of_tokens,
-        } = self
-            .tokens_freq_within_docs
-            .get(document_path)
-            .ok_or_else(|| {
-                println!(
-                    "ERROR: Invalid document path {path}",
-                    path = document_path.display()
-                )
-            })?;
-
-        let tf = if let Some(&token_freq) = tokens_freq.get(token) {
-            token_freq as f32 / *num_of_tokens as f32
-        } else {
-            0.
-        };
-
-        Ok(tf)
+    pub fn load(src: &Path) -> Result<Self, ()> {
+        todo!();
     }
+}
 
-    pub fn compute_idf(&self, token: &Token) -> f32 {
-        let num_of_docs = self.tokens_freq_within_docs.len();
-        let token_freq = self.tokens_freq_across_docs.get(token).unwrap_or(&1);
-        f32::log10(num_of_docs as f32 / *token_freq as f32)
-    }
-
+// private methods
+impl SearchEngineIndex {
     // TODO: handle symbolic links. consider using https://github.com/BurntSushi/walkdir for that
     fn index_dir(&mut self, dir_path: &Path) -> Result<(), ()> {
         let dir_entries = std::fs::read_dir(dir_path).map_err(|err| {
