@@ -36,67 +36,76 @@ fn main() -> Result<()> {
         eprintln!("Example: {program_name} <COMMAND>");
     })?;
 
-    if command == "help" {
-        print_usage(&program_name);
-    } else if command == "index" {
-        let docs_dir = args.next().ok_or_else(|| {
+    match command.as_str() {
+        "help" => {
             print_usage(&program_name);
-            eprintln!("ERROR: Expected path of the directory with documents to index");
-            eprintln!("Example: {program_name} index path/to/dir/");
-        })?;
-        let index = SearchEngineIndex::new(docs_dir)?;
+        }
+        "index" => {
+            let docs_dir = args.next().ok_or_else(|| {
+                print_usage(&program_name);
+                eprintln!("ERROR: Expected path of the directory with documents to index");
+                eprintln!("Example: {program_name} index path/to/dir/");
+            })?;
+            let index = SearchEngineIndex::new(docs_dir)?;
 
-        let dest_path = args.next().unwrap_or_else(|| String::from("index.json"));
-        index.save(dest_path)?;
-    } else if command == "search" {
-        let query = args.next().ok_or_else(|| {
+            let dest_path = args.next().unwrap_or_else(|| String::from("index.json"));
+            index.save(dest_path)?;
+        }
+        "search" => {
+            let query = args.next().ok_or_else(|| {
+                print_usage(&program_name);
+                eprintln!("ERROR: Expected search query");
+                eprintln!("Example: {program_name} search 'my search query'");
+            })?;
+            let index_path = args.next().unwrap_or_else(|| String::from("index.json"));
+
+            let search_engine = SearchEngine::new(index_path)?;
+            let search_results = search_engine.search(&query);
+            for SearchResult {
+                doc_path,
+                importance_score,
+            } in search_results
+            {
+                println!("{path}: {importance_score}", path = doc_path.display());
+            }
+        }
+        "serve" => {
+            let address = args
+                .next()
+                .unwrap_or_else(|| String::from("127.0.0.1:8000"));
+
+            let server = Server::http(&address)
+                .map_err(|err| eprintln!("ERROR: Couldn't start server: {err}"))?;
+
+            // TODO: read index path from cli
+            let search_engine = SearchEngine::new("index.json")?;
+
+            println!("INFO: Listening at {address}");
+
+            for request in server.incoming_requests() {
+                print_incoming_request(&request);
+                let _ = handle_request(request, &search_engine);
+            }
+        }
+        _ => {
             print_usage(&program_name);
-            eprintln!("ERROR: Expected search query");
-            eprintln!("Example: {program_name} search 'my search query'");
-        })?;
-        let index_path = args.next().unwrap_or_else(|| String::from("index.json"));
-
-        let search_engine = SearchEngine::new(index_path)?;
-        let search_results = search_engine.search(&query);
-        for SearchResult {
-            doc_path,
-            importance_score,
-        } in search_results
-        {
-            println!("{path}: {importance_score}", path = doc_path.display());
+            eprintln!("ERROR: invalid command {command}");
         }
-    } else if command == "serve" {
-        let address = args
-            .next()
-            .unwrap_or_else(|| String::from("127.0.0.1:8000"));
-
-        let server = Server::http(&address)
-            .map_err(|err| eprintln!("ERROR: Couldn't start server: {err}"))?;
-
-        // TODO: read index path from cli
-        let search_engine = SearchEngine::new("index.json")?;
-
-        println!("INFO: Listening at {address}");
-
-        for request in server.incoming_requests() {
-            println!(
-                "{method} {url} from {remote_addr}",
-                method = request.method(),
-                url = request.url(),
-                remote_addr = request
-                    .remote_addr()
-                    .map(|addr| addr.to_string())
-                    .unwrap_or_else(|| String::from("unknown address"))
-            );
-
-            let _ = handle_request(request, &search_engine);
-        }
-    } else {
-        print_usage(&program_name);
-        eprintln!("ERROR: invalid command {command}");
     }
 
     Ok(())
+}
+
+fn print_incoming_request(request: &Request) {
+    println!(
+        "{method} {url} from {remote_addr}",
+        method = request.method(),
+        url = request.url(),
+        remote_addr = request
+            .remote_addr()
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| String::from("unknown address"))
+    );
 }
 
 fn print_usage(program_name: &str) {
