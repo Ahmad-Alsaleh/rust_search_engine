@@ -9,6 +9,8 @@
 // TODO: be consistent when logging ERROR vs. WARN. (if it too much of headache to decide which to
 // use, just use ERROR all the time. It is no big deal).
 
+// TODO: use https://remykarem.github.io/tfidf-demo/ to test tf-idf implementation
+
 // TODO (next steps):
 // 1. save the index to a local file (as json, using serde)
 //      add two methods for SearchEngineIndex: save and load
@@ -19,7 +21,8 @@
 // 5. maybe add stemming (later)
 // 6. create a simple cli tool but create a lib.rs to do that
 
-use std::env::{self};
+use std::{env, fs::File};
+use tiny_http::{Method, Request, Response, Server};
 
 use RustSearchEngine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
 
@@ -63,21 +66,31 @@ fn main() -> Result<()> {
             println!("{path}: {importance_score}", path = doc_path.display());
         }
     } else if command == "serve" {
-        todo!();
-        // start http server which internally creates a search_engine { index } and calls search_engine.search(prompt);
+        let address = args
+            .next()
+            .unwrap_or_else(|| String::from("127.0.0.1:8000"));
 
-        // let index_path = args.next()
-        // let index_path = "index path";
-        // let search_engine = SearchEngine::new(index_path);
-        // let server = Server::new(search_engine);
-        // server.handle_requests();
+        let server = Server::http(&address)
+            .map_err(|err| eprintln!("ERROR: Couldn't start server: {err}"))?;
 
-        // create a search_engine { index } object then start an http server which internally
-        // calls search_engine.search(prompt).
-        // the search_engine object will load the index from a provided path (default path should
-        // work too)
-        // search_engine.search should tokenize the prompt and loop over all docs computing the
-        // tfi-df of each.
+        // TODO: read index path from cli
+        let search_engine = SearchEngine::new("index.json")?;
+
+        println!("INFO: Listening at {address}");
+
+        for request in server.incoming_requests() {
+            println!(
+                "{method} {url} from {remote_addr}",
+                method = request.method(),
+                url = request.url(),
+                remote_addr = request
+                    .remote_addr()
+                    .map(|addr| addr.to_string())
+                    .unwrap_or_else(|| String::from("unknown address"))
+            );
+
+            let _ = handle_request(request, &search_engine);
+        }
     } else {
         print_usage(&program_name);
         eprintln!("ERROR: invalid command {command}");
@@ -87,15 +100,66 @@ fn main() -> Result<()> {
 }
 
 fn print_usage(program_name: &str) {
-    eprintln!("Usage:   {program_name} <COMMAND>");
-    eprintln!();
-    eprintln!("Commands:");
-    eprintln!("  help:    Show app usage and exit");
-    eprintln!("  index <DOCS-DIR> [<DEST-PATH>]:");
-    eprintln!("           Create an index from a directory of documents and save it.");
-    eprintln!("           Default destination is `index.json`");
-    eprintln!("  search <QUERY> [<INDEX-PATH>]:");
-    eprintln!("           Search for relevant documents to a search query.");
-    eprintln!("           Default index path is `index.json`");
-    eprintln!();
+    println!("Usage:   {program_name} <COMMAND>");
+    println!();
+    println!("Commands:");
+    println!("  help:    Show app usage and exit.");
+    println!("  index <DOCS-DIR> [DEST-PATH]:");
+    println!("           Create an index from a directory of documents and save it.");
+    println!("           Default destination is `index.json`.");
+    println!("  search <QUERY> [INDEX-PATH]:");
+    println!("           Search for relevant documents using a search query.");
+    println!("           Default index path is `index.json`.");
+    // TODO: add an optional arg (or flag) to specify the index path
+    println!("  serve [HOST:PORT]:");
+    println!("           Create an HTTP server to search for documents using a search query.");
+    println!("           Default address is 127.0.0.1:8000");
+    println!();
+}
+
+fn handle_request(mut request: Request, search_engine: &SearchEngine) -> Result<()> {
+    match (request.method(), request.url()) {
+        (Method::Get, "/") => {
+            let index_file = File::open("frontend/index.html")
+                .map_err(|err| eprintln!("ERROR: Couldn't open index.html: {err}"))?;
+            let response = Response::from_file(index_file);
+            request
+                .respond(response)
+                .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+        }
+        (Method::Post, "/api/search") => {
+            let mut query = String::with_capacity(request.body_length().unwrap_or(32));
+
+            request
+                .as_reader()
+                .read_to_string(&mut query)
+                .map_err(|err| eprintln!("ERROR: Failed to read request body: {err}"))?;
+
+            let search_results = search_engine.search(&query);
+
+            let docs_paths: Vec<_> = search_results
+                .into_iter()
+                .map(|search_result| search_result.doc_path)
+                // implement paging somehow (maybe from the frontend side).
+                // use a page size that makes the site look good (eg 5)
+                .take(10)
+                .collect();
+
+            let docs_paths = serde_json::to_vec(&docs_paths)
+                .map_err(|err| eprintln!("ERROR: Failed to serialize response: {err}"))?;
+
+            request
+                .respond(Response::from_data(docs_paths))
+                .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+        }
+        (a, b) => {
+            eprintln!("ERROR: {a} {b} is not supported yet");
+            // TODO: add a msg, not only 404
+            request
+                .respond(Response::empty(404))
+                .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+        }
+    };
+
+    Ok(())
 }

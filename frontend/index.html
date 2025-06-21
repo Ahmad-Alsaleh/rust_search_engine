@@ -1,0 +1,117 @@
+<!-- TODO: cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Search Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div id="clouds">
+        <div class="cloud x1"></div>
+        <div class="cloud x1_5"></div>
+        <div class="cloud x2"></div>
+        <div class="cloud x3"></div>
+        <div class="cloud x4"></div>
+        <div class="cloud x5"></div>
+    </div>
+
+    <div class="w-full max-w-xl bg-white rounded-xl shadow-lg p-6 sm:p-8 flex flex-col items-center">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-8 text-center leading-tight">
+            Rust <span class="text-red-600">Search Engine</span>
+        </h1>
+
+        <div class="w-full flex flex-col sm:flex-row items-center gap-4 mb-8">
+            <input type="text" id="searchInput" placeholder="Search the web..."
+                class="flex-grow px-5 py-3 rounded-full border border-gray-300 focus:border-red-500 transition-all duration-300 ease-in-out text-lg text-gray-700 shadow-sm"
+                aria-label="Search query input">
+            <button id="searchButton"
+                class="w-full sm:w-auto px-7 py-3 bg-red-600 text-white rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 focus:outline-none transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95">
+                Search
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-gray-600 text-lg font-medium mb-4">
+            Loading results...
+        </div>
+
+        <div id="resultsContainer"
+            class="w-full bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200 min-h-[150px] flex flex-col gap-3 overflow-hidden shadow-inner">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-3">Results:</h2>
+            <div id="resultsList" class="flex flex-col gap-2">
+                <p class="text-gray-500 text-center py-8">Your search results will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultsList = document.getElementById('resultsList');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                resultsList.innerHTML = '<p class="text-red-500 text-center py-8">Please enter a search query.</p>';
+                return;
+            }
+
+            if (query.length > 100) {
+                resultsList.innerHTML = '<p class="text-red-500 text-center py-8">Search query is too long.</p>';
+                return;
+            }
+
+            resultsList.innerHTML = ''; // clear previous results
+            loadingIndicator.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: query
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const search_results = await response.json();
+
+                if (search_results && search_results.length > 0) {
+                    search_results.forEach(search_result => {
+                        const resultItem = document.createElement('a');
+                        resultItem.href = search_result.url || '#';
+                        resultItem.className = 'block p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-blue-600 font-medium text-lg';
+                        resultItem.textContent = search_result;
+                        resultsList.appendChild(resultItem);
+                    });
+                } else {
+                    resultsList.innerHTML = '<p class="text-gray-500 text-center py-8">No results found for your query.</p>';
+                }
+
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+                resultsList.innerHTML = '<p class="text-red-500 text-center py-8">An error occurred while fetching results.</p>';
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        resultsList.innerHTML = '<p class="text-gray-500 text-center py-8">Your search results will appear here.</p>';
+    </script>
+</body>
+
+</html>
