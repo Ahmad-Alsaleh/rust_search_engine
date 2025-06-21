@@ -21,8 +21,8 @@
 // 5. maybe add stemming (later)
 // 6. create a simple cli tool but create a lib.rs to do that
 
-use std::{env, fs::File};
-use tiny_http::{Method, Request, Response, Server};
+use std::{env, fs::File, path::Path};
+use tiny_http::{Method, Request, Response, Server, StatusCode};
 
 use RustSearchEngine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
 
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
         for SearchResult {
             doc_path,
             importance_score,
-        } in search_results.into_iter()
+        } in search_results
         {
             println!("{path}: {importance_score}", path = doc_path.display());
         }
@@ -117,15 +117,21 @@ fn print_usage(program_name: &str) {
     println!();
 }
 
+fn serve_file(path: &Path, request: Request, status_code: StatusCode) -> Result<()> {
+    let file = File::open(path).map_err(|err| eprintln!("ERROR: Couldn't open file: {err}"))?;
+    let response = Response::from_file(file).with_status_code(status_code);
+    request
+        .respond(response)
+        .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+
+    Ok(())
+}
+
 fn handle_request(mut request: Request, search_engine: &SearchEngine) -> Result<()> {
     match (request.method(), request.url()) {
-        (Method::Get, "/") => {
-            let index_file = File::open("frontend/index.html")
-                .map_err(|err| eprintln!("ERROR: Couldn't open index.html: {err}"))?;
-            let response = Response::from_file(index_file);
-            request
-                .respond(response)
-                .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+        (Method::Get, "/") => serve_file(Path::new("frontend/index.html"), request, 200.into())?,
+        (Method::Get, "/styles.css") => {
+            serve_file(Path::new("frontend/styles.css"), request, 200.into())?
         }
         (Method::Post, "/api/search") => {
             let mut query = String::with_capacity(request.body_length().unwrap_or(32));
@@ -152,12 +158,9 @@ fn handle_request(mut request: Request, search_engine: &SearchEngine) -> Result<
                 .respond(Response::from_data(docs_paths))
                 .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
         }
-        (a, b) => {
-            eprintln!("ERROR: {a} {b} is not supported yet");
-            // TODO: add a msg, not only 404
-            request
-                .respond(Response::empty(404))
-                .map_err(|err| eprintln!("ERROR: Failed to send response: {err}"))?;
+        (method, url) => {
+            eprintln!("ERROR: {method} {url} is not supported yet");
+            serve_file(Path::new("frontend/404.html"), request, 200.into())?
         }
     };
 
