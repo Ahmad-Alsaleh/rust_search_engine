@@ -49,6 +49,7 @@ fn main() -> Result<()> {
         let query = args.next().ok_or_else(|| {
             print_usage(&program_name);
             eprintln!("ERROR: Expected search query");
+            eprintln!("Example: {program_name} search 'my search query'");
         })?;
         let index_path = args.next().unwrap_or_else(|| String::from("index.json"));
 

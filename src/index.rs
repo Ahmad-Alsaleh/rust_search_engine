@@ -32,7 +32,7 @@ impl SearchEngineIndex {
     pub fn new(docs_dir: impl AsRef<Path>) -> Result<Self> {
         let docs_dir = docs_dir.as_ref();
 
-        let mut search_engine_index: Self = Default::default();
+        let mut search_engine_index = Self::default();
         search_engine_index.index_dir(docs_dir)?;
 
         Ok(search_engine_index)
@@ -53,9 +53,8 @@ impl SearchEngineIndex {
 // private methods
 impl SearchEngineIndex {
     pub(crate) fn load(index_path: &Path) -> Result<Self> {
-        let file = File::open(index_path).map_err(|err| {
-            eprintln!("ERROR: Failed to open the index file: {err}");
-        })?;
+        let file = File::open(index_path)
+            .map_err(|err| eprintln!("ERROR: Failed to open the index file: {err}"))?;
         let file = BufReader::new(file);
 
         let index = serde_json::from_reader(file)
@@ -70,7 +69,7 @@ impl SearchEngineIndex {
             eprintln!(
                 "ERROR: Couldn't open directory {path}: {err}",
                 path = dir_path.display()
-            )
+            );
         })?;
 
         'next_dir_entry: for dir_entry in dir_entries {
