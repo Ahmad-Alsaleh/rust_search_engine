@@ -24,7 +24,7 @@
 use std::{env, fs::File, path::Path};
 use tiny_http::{Method, Request, Response, Server, StatusCode};
 
-use RustSearchEngine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
+use rust_search_engine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
 
 fn main() -> Result<()> {
     let mut args = env::args();
