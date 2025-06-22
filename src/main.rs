@@ -1,25 +1,8 @@
-// Steps:
-// read all docs.
-// parse xml
-// tokenize all text
-// find # of times every token/term appears in each doc and in how many docs it appears
-//      (compute and cache tf-idf index to disk).
-// create a simple http server on localhost
+// TODO: consider saving the tf-idf values instead of within and between docs freq
 
-// TODO: be consistent when logging ERROR vs. WARN. (if it too much of headache to decide which to
-// use, just use ERROR all the time. It is no big deal).
+// TODO: check all todos (including in the frontend)
 
-// TODO: use https://remykarem.github.io/tfidf-demo/ to test tf-idf implementation
-
-// TODO (next steps):
-// 1. save the index to a local file (as json, using serde)
-//      add two methods for SearchEngineIndex: save and load
-// 2. remove compute_tf_idf to a struct called SearchEngine (which contains an index: SearchEngineIndex)
-//      create a method called search that takes a prompt and loops over all docs to rank them. create
-//      a similar func that takes a k to return the top k results (use DSs to optimize the complexity).
-// 4. make a simple http server
-// 5. maybe add stemming (later)
-// 6. create a simple cli tool but create a lib.rs to do that
+// TODO: maybe add stemming
 
 use std::{env, fs::File, path::Path};
 use tiny_http::{Method, Request, Response, Server, StatusCode};

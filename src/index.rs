@@ -159,8 +159,6 @@ fn get_tokens_freq_within_doc(path: &Path) -> Result<TokensFreqWithinDoc> {
 
     let mut tokens_freq = TokensFreq::new();
 
-    // TODO: consider using `xml::ParserConfig` to trim whitespace and disable unneeded events
-    // (such as comments)
     'next_xml_event: for xml_event in EventReader::new(file) {
         let xml_event = match xml_event {
             Ok(xml_event) => xml_event,
