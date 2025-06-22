@@ -4,7 +4,11 @@
 
 // TODO: maybe add stemming
 
-use std::{env, fs::File, path::Path};
+use std::{
+    env::{self, Args},
+    fs::File,
+    path::Path,
+};
 use tiny_http::{Method, Request, Response, Server, StatusCode};
 
 use rust_search_engine::{Result, SearchEngine, SearchEngineIndex, SearchResult};
@@ -53,15 +57,15 @@ fn main() -> Result<()> {
             }
         }
         "serve" => {
-            let address = args
-                .next()
-                .unwrap_or_else(|| String::from("127.0.0.1:8000"));
+            let ServeCommandArgs {
+                address,
+                index_path,
+            } = ServeCommandArgs::new(args)?;
 
             let server = Server::http(&address)
                 .map_err(|err| eprintln!("ERROR: Couldn't start server: {err}"))?;
 
-            // TODO: read index path from cli
-            let search_engine = SearchEngine::new("index.json")?;
+            let search_engine = SearchEngine::new(index_path)?;
 
             println!("INFO: Listening at {address}");
 
@@ -77,6 +81,59 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+struct ServeCommandArgs {
+    address: String,
+    index_path: String,
+}
+
+impl ServeCommandArgs {
+    fn new(args: Args) -> Result<Self> {
+        #[derive(Default)]
+        struct ServeCommandArgsBuilder {
+            host: Option<String>,
+            port: Option<String>,
+            index_path: Option<String>,
+        }
+
+        let mut builder = ServeCommandArgsBuilder::default();
+
+        for arg in args {
+            let (flag, value) = arg.split_once('=').ok_or_else(|| {
+                eprintln!("ERROR: Invalid argument format, expected: --flag=value")
+            })?;
+
+            let value = Some(String::from(value));
+
+            match flag {
+                "--host" => {
+                    builder.host = value;
+                }
+                "--port" => {
+                    builder.port = value;
+                }
+                "--index-path" => {
+                    builder.index_path = value;
+                }
+                _ => {
+                    eprintln!("ERROR: Invalid argument: {flag}");
+                    return Err(());
+                }
+            }
+        }
+
+        let host = builder.host.unwrap_or_else(|| String::from("127.0.0.1"));
+        let port = builder.port.unwrap_or_else(|| String::from("8000"));
+        let index_path = builder
+            .index_path
+            .unwrap_or_else(|| String::from("index.json"));
+
+        Ok(Self {
+            address: format!("{host}:{port}"),
+            index_path,
+        })
+    }
 }
 
 fn print_incoming_request(request: &Request) {
@@ -102,8 +159,7 @@ fn print_usage(program_name: &str) {
     println!("  search <QUERY> [INDEX-PATH]:");
     println!("           Search for relevant documents using a search query.");
     println!("           Default index path is `index.json`.");
-    // TODO: add an optional arg (or flag) to specify the index path
-    println!("  serve [HOST:PORT]:");
+    println!("  serve [--host=HOST] [--port=PORT] [--index-path=INDEX-PATH]:");
     println!("           Create an HTTP server to search for documents using a search query.");
     println!("           Default address is 127.0.0.1:8000");
     println!();

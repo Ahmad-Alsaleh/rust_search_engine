@@ -25,7 +25,6 @@ impl SearchEngine {
     }
 
     pub fn search(&self, prompt: &str) -> Vec<SearchResult> {
-        // TODO: try avoiding allocation here, but change Tokenizer::new
         let prompt = prompt.chars().collect::<Vec<_>>();
 
         let mut search_results: Vec<_> = self
