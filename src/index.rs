@@ -21,6 +21,9 @@ pub(crate) struct TokensFreqWithinDoc {
     pub(crate) num_of_tokens: usize,
 }
 
+// TODO: consider saving the tf-idf value of each token instead of the token frequency
+// within and between docs. This might make searching more effecient and potentially
+// reduce the index size since each token will be indexed exactly once
 #[derive(Default, Serialize, Deserialize)]
 pub struct SearchEngineIndex {
     pub(crate) tokens_freq_within_docs: TokensFreqWithinDocs,

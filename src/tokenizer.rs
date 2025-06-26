@@ -42,6 +42,9 @@ impl<'a> Tokenizer<'a> {
             self.chop(1)
         };
 
+        // TODO: maybe stem the token before returning it
+        // consider using https://crates.io/crates/rust-stemmers
+
         Some(token.iter().map(|c| c.to_ascii_uppercase()).collect())
     }
 }

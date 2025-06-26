@@ -1,9 +1,3 @@
-// TODO: consider saving the tf-idf values instead of within and between docs freq
-
-// TODO: check all todos (including in the frontend)
-
-// TODO: maybe add stemming
-
 use std::{
     env::{self, Args},
     fs::File,
@@ -194,9 +188,8 @@ fn handle_request(mut request: Request, search_engine: &SearchEngine) -> Result<
             let docs_paths: Vec<_> = search_results
                 .into_iter()
                 .map(|search_result| search_result.doc_path)
-                // implement paging somehow (maybe from the frontend side).
-                // use a page size that makes the site look good (eg 5)
-                .take(10)
+                // TODO: implement paging somehow (maybe from the frontend side).
+                // use a page size that makes the site look good (e.g. 5)
                 .collect();
 
             let docs_paths = serde_json::to_vec(&docs_paths)
