@@ -53,4 +53,3 @@ For more details, use the help command:
 ```bash
 cargo run -- help
 ```
-
