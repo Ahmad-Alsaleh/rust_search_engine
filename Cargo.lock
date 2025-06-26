@@ -57,7 +57,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_search_engine"
+name = "rust-search-engine"
 version = "0.1.0"
 dependencies = [
  "serde",

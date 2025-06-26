@@ -1,3 +1,5 @@
+#![allow(clippy::result_unit_err)]
+
 mod index;
 mod search_engine;
 mod tokenizer;
